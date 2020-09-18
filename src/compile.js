@@ -12,6 +12,8 @@ const debugVerbose = debug_('purs-loader:verbose');
 
 const dargs = require('./dargs');
 
+const zephyr = require('./zephyr');
+
 module.exports = function compile(psModule) {
   const options = psModule.options
 
@@ -20,7 +22,7 @@ module.exports = function compile(psModule) {
   const compileArgs = (options.psc ? [] : [ 'compile' ]).concat(dargs(Object.assign({
     _: options.src,
     output: options.output,
-    codegen: "js,corefn"
+    codegen: options.zephyr ? "js,corefn" : undefined
   }, options.pscArgs)))
 
   const stderr = [];
@@ -60,11 +62,12 @@ module.exports = function compile(psModule) {
           psModule.emitWarning(warningMessage);
         }
 
-        // Run zephyr
-        const zephyr = spawn("zephyr", [ psModule.name, "-i", options.output, "-o", options.output ]);
-        zephyr.on('close', function () {
-          resolve(psModule);
-        });
+        // zephyr dead code elimination
+        if(options.zephyr) {
+          zephyr(psModule).then(resolve);
+        } else {
+          resolve(psModule)
+        }
       }
     })
   });
