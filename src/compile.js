@@ -17,9 +17,11 @@ module.exports = function compile(psModule) {
 
   const compileCommand = options.psc || 'purs';
 
+  const tmpDir = "tmp"
   const compileArgs = (options.psc ? [] : [ 'compile' ]).concat(dargs(Object.assign({
     _: options.src,
-    output: options.output,
+    output: tmpDir,
+    codegen: "js,corefn"
   }, options.pscArgs)))
 
   const stderr = [];
@@ -58,7 +60,12 @@ module.exports = function compile(psModule) {
         if (options.warnings && warningMessage.length) {
           psModule.emitWarning(warningMessage);
         }
-        resolve(psModule)
+
+        // Run zephyr
+        const zephyr = spawn("zephyr", ["Main.main", "-i", tmpDir, "-o", options.output]);
+        zephyr.on('close', function () {
+          resolve(psModule);
+        });
       }
     })
   });
